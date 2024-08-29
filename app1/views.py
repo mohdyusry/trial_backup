@@ -24,21 +24,21 @@ def landing_page(request):
 
 def dashboard(request):
     user = request.user
-    # Check user role
+    logger.info(f"User {user.username} has role: {user.userprofile.role}")
 
-    
-    if request.user.is_superuser or request.user.userprofile.role in ['admin', 'tech_support']:
+    if user.is_superuser or user.userprofile.role in ['admin', 'tech_support']:
         # Admin or Tech Support sees all tickets
         tickets = Ticket.objects.all()
     else:
         # Normal user sees only their tickets
-        tickets = Ticket.objects.filter(user_name=request.user.username)
+        tickets = Ticket.objects.filter(user_name=user.username)
 
     context = {
         'tickets': tickets,
     }
 
     return render(request, 'dashboard.html', context)
+
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
@@ -47,6 +47,16 @@ from .models import Ticket, UserProfile
 from .chatbot import recommend_action
 from django.utils import timezone
 import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
+import logging
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+from .forms import ChatForm
+from .models import Ticket
+from .chatbot import recommend_action
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -63,18 +73,23 @@ def chatbot_view(request):
     except UserProfile.DoesNotExist:
         profile = UserProfile.objects.create(user=user, role='user')
         is_admin_or_tech = False
+        logger.info(f"UserProfile created for {user.username} with role 'user'.")
 
     if request.method == 'POST':
         form = ChatForm(request.POST, role=profile.role)
         if form.is_valid():
+            # Extract form data
             hw_type = form.cleaned_data['hw_type']
             apps_sw = form.cleaned_data['apps_sw']
+            report_type = form.cleaned_data['report_type']
             report_desc = form.cleaned_data['report_desc']
-            
+            logger.info(f"Form data received: {hw_type}, {apps_sw}, {report_type}, {report_desc}")
+
             # Call the chatbot model
-            recommended_action = recommend_action(hw_type, apps_sw, report_desc)
+            recommended_action = recommend_action(hw_type, apps_sw, report_type, report_desc)
             logger.info(f"Recommended Action: {recommended_action}")
             
+            # Save the ticket
             ticket = Ticket(
                 email=form.cleaned_data['email'],
                 user_name=form.cleaned_data['user_name'],
@@ -109,9 +124,7 @@ def chatbot_view(request):
             except Exception as e:
                 logger.error(f"Error saving ticket: {e}")
         else:
-            # Log form errors
             logger.error(f"Form is invalid: {form.errors}")
-
     else:
         form = ChatForm(
             hw_type_choices=[(x, x) for x in Ticket.objects.values_list('hw_type', flat=True).distinct()],
@@ -125,6 +138,7 @@ def chatbot_view(request):
             pc_name=f"{profile.dprt}-{profile.post}-{profile.env}" if profile else '',
             role=profile.role if profile else 'user'
         )
+        logger.info(f"Form initialized for user {user.username}")
 
     context = {
         'form': form,
@@ -135,32 +149,36 @@ def chatbot_view(request):
 
 
 
-
-from django.contrib.auth import get_backends
-from .forms import SignUpForm  # Make sure you import your SignUpForm
+from django.contrib.auth import login
+from django.contrib.auth.models import User
+from django.shortcuts import render, redirect
+from .forms import SignUpForm
+from django.contrib import messages
 
 def signup_view(request):
     if request.method == 'POST':
         form = SignUpForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)  # Create a new user object, but don't save it to the database yet
-            user.email = form.cleaned_data['email']  # Explicitly save the email
-            if not form.cleaned_data['password1']:  # Check if password is empty
-                user.set_password('1234')  # Set the default password
-            else:
-                user.set_password(form.cleaned_data.get('password1'))  # Set the password from the form
-            user.save()  # Save the user to the database
-            form.save_m2m()  # Save the roles
+            username = form.cleaned_data['username']
+            email = form.cleaned_data['email']
+            
+            # Check if the user already exists
+            if User.objects.filter(username=username).exists() or User.objects.filter(email=email).exists():
+                messages.error(request, "Pengguna telah didaftarkan sila login")
+                return render(request, 'signup.html', {'form': form, 'user_exists': True})
+            
+            user = form.save()
 
-            # Manually specify the backend for login
-            backend = get_backends()[0]  # Get the first available backend (usually the default)
-            user.backend = f'{backend.__module__}.{backend.__class__.__name__}'
+            # Log the user in
+            backend = 'django.contrib.auth.backends.ModelBackend'  # Use the default backend
+            login(request, user, backend=backend)
 
-            login(request, user)  # Automatically log the user in after signup
-            return redirect('login')  # Redirect to the login page
+            return redirect('login')  # Redirect to the login after signup
     else:
         form = SignUpForm()
+
     return render(request, 'signup.html', {'form': form})
+
 
 
 
@@ -175,19 +193,41 @@ def custom_login_view(request):
         form = EmailAuthenticationForm()
     return render(request, 'login.html', {'form': form})
 
-
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
+from django.utils import timezone
 from .models import Ticket
 
 def respond_ticket(request, ticket_id):
-    # Fetch the ticket based on the ticket_id
     ticket = get_object_or_404(Ticket, id=ticket_id)
-    
-    if request.method == 'POST':
-        # Handle the response action here, e.g., updating the ticket status
-        # Example: ticket.act_stat = 'Responded'
-        # ticket.save()
-        pass  # Replace with your logic
 
-    # Render a template for responding to the ticket
+    if request.method == 'POST':
+        act_taken = request.POST.get('act_taken')
+        act_stat = request.POST.get('act_stat')
+        taken_by = request.user.username
+
+        # Ensure act_taken is not empty
+        if not act_taken:
+            return render(request, 'respond_ticket.html', {
+                'ticket': ticket,
+                'error_message': 'Action taken is required.'
+            })
+
+        # Update the ticket fields
+        ticket.act_taken = act_taken
+        ticket.act_stat = act_stat
+        ticket.taken_by = taken_by
+        ticket.date_action = timezone.now().date()
+        ticket.time_action = timezone.now().time()
+
+        try:
+            ticket.save()
+            return redirect('dashboard')
+        except Exception as e:
+            return render(request, 'respond_ticket.html', {
+                'ticket': ticket,
+                'error_message': str(e)
+            })
+
     return render(request, 'respond_ticket.html', {'ticket': ticket})
+
+

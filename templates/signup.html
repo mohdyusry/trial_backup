@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ai-Help Signup</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/css/bootstrap.min.css">
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f0f2f5;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -18,51 +18,92 @@
 
         .signup-container {
             background: #ffffff;
-            padding: 30px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
             width: 100%;
-            max-width: 75%
+            max-width: 500px;
         }
 
-        .signup-form h2 {
-            margin-top: 100px;
-            margin-bottom: 10px;
+        .signup-container h2 {
+            margin-bottom: 30px;
             text-align: center;
+            font-weight: 700;
+            color: #333;
         }
 
         .form-group label {
-            margin-bottom: 5px;
-            width: 100%;
+            font-weight: 600;
         }
 
         .btn-primary {
             background-color: #007bff;
             border-color: #007bff;
-            width: 20%;
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 600;
         }
 
-        .btn-link,
-        .btn-secondary {
-            display: block;
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+
+        .form-text {
+            font-size: 14px;
+        }
+
+        .form-footer {
             text-align: center;
-            margin-top: 15px;
+            margin-top: 20px;
+        }
+
+        .form-footer a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .form-footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .signup-container {
+                padding: 20px;
+            }
+
+            .btn-primary {
+                padding: 10px;
+            }
+
+            .signup-container h2 {
+                margin-bottom: 20px;
+                font-size: 24px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="signup-container">
-        <div class="signup-form">
-            <h2>Daftar Ai-Help</h2>
-            <form method="post">
-                {% csrf_token %}
-                 {{ form.as_p }}
-                <button type="submit" class="btn btn-primary">Daftar</button>
+        <h2>Daftar Ai-Help</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Daftar</button>
+            <div class="form-footer">
                 <p>Akaun pengguna telah wujud? <a href="{% url 'login' %}">Login disini</a></p>
-            </form>
-        </div>
+            </div>
+        </form>
     </div>
-    
+
+    {% if user_exists %}
+    <script>
+        alert("Pengguna telah didaftarkan sila login");
+    </script>
+    {% endif %}
 </body>
+
 </html>

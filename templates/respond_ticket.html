@@ -10,10 +10,17 @@
     <div class="container">
         <h1>Respond to Ticket #{{ ticket.ticket_no }}</h1>
         <p><strong>Description:</strong> {{ ticket.report_desc }}</p>
-        
+
+        {% if error_message %}
+        <div class="alert alert-danger">{{ error_message }}</div>
+        {% endif %}
+
         <form method="post">
             {% csrf_token %}
-            <!-- Add form fields for response here -->
+            <div class="form-group">
+                <label for="act_taken">Action Taken</label>
+                <textarea class="form-control" id="act_taken" name="act_taken" required>{{ ticket.act_taken }}</textarea>
+            </div>
             <div class="form-group">
                 <label for="act_stat">Action Status</label>
                 <input type="text" class="form-control" id="act_stat" name="act_stat" value="{{ ticket.act_stat }}">
