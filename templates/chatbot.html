@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ai-Help Report Form</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            margin: 0;
+        }
+        .container {
+            background: #ffffff;
+            padding: 30px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            max-width: 900px;
+            margin: 20px auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            color: #343a40;
+        }
+        h2 {
+            font-size: 1.5rem;
+            color: #495057;
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            font-weight: bold;
+            color: #495057;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+        .btn-submit:hover {
+            background-color: #218838;
+        }
+        .sidebar-sticky {
+            position: sticky;
+            top: 0;
+            height: calc(100vh - 56px);
+            padding-top: 1rem;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        .chatbot-container {
+            margin-top: 20px;
+        }
+        #chat-history {
+            margin-top: 20px;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script type="text/javascript">
+        function updatePcName() {
+            var dprt = document.getElementById("id_dprt").value;
+            var post = document.getElementById("id_post").value;
+            var env = document.getElementById("id_env").value;
+            document.getElementById("id_pc_name").value = dprt + "-" + post + "-" + env;
+        }
+    </script>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+                <div class="sidebar-sticky">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{% url 'dashboard' %}">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'landing_page' %}">Laman Utama Sistem</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main role="main" class="col-md-10 ml-sm-auto col-lg-10 px-4 main-content">
+                <h1>Ai-Help</h1>
+                <div class="chatbot-container">
+                    <div class="chatbot-form">
+                        <h2>Ai-Help Report</h2>
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                {{ form.user_name.label_tag }} {{ form.user_name }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.email.label_tag }} {{ form.email }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.dprt.label_tag }} {{ form.dprt }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.post.label_tag }} {{ form.post }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.env.label_tag }} {{ form.env }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.pc_name.label_tag }} {{ form.pc_name }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.report_type.label_tag }} {{ form.report_type }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.hw_type.label_tag }} {{ form.hw_type }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.apps_sw.label_tag }} {{ form.apps_sw }}
+                            </div>
+                            {% comment %} <div class="form-group">
+                                {{ form.pc_ip.label_tag }} {{ form.pc_ip }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.hw_model.label_tag }} {{ form.hw_model }}
+                            </div> {% endcomment %}
+                            <div class="form-group">
+                                {{ form.report_desc.label_tag }} {{ form.report_desc }}
+                            </div>
+
+                            {% if is_admin_or_tech %}
+                                <!-- Additional fields for admin and tech support -->
+                                <div class="form-group">
+                                    {{ form.hw_sn.label_tag }} {{ form.hw_sn }}
+                                </div>
+                                <div class="form-group">
+                                    {{ form.hw_type_encode.label_tag }} {{ form.hw_type_encode }}
+                                </div>
+                                <div class="form-group">
+                                    {{ form.spa_no.label_tag }} {{ form.spa_no }}
+                                </div>
+                                <div class="form-group">
+                                    {{ form.act_taken.label_tag }} {{ form.act_taken }}
+                                </div>
+                                <div class="form-group">
+                                    {{ form.act_stat.label_tag }} {{ form.act_stat }}
+                                </div>
+                                <div class="form-group">
+                                    {{ form.taken_by.label_tag }} {{ form.taken_by }}
+                                </div>
+                            {% endif %}
+                            
+                            <button type="submit" class="btn-submit">Submit</button>
+                        </form>
+                    </div>
+                </div>
+                <div id="chat-history" class="mt-4">
+                    {% for user_msg, bot_msg in chat_history %}
+                        <div class="user-msg"><strong>User:</strong> {{ user_msg }}</div>
+                        <div class="bot-msg"><strong>Bot:</strong> {{ bot_msg }}</div>
+                    {% endfor %}
+                </div>
+                
+                <script type="text/javascript">
+                    document.getElementById("id_dprt").addEventListener("change", updatePcName);
+                    document.getElementById("id_post").addEventListener("change", updatePcName);
+                    document.getElementById("id_env").addEventListener("change", updatePcName);
+                </script>
+            </main> 
+        </div>
+    </div>
+</body>
+</html>
